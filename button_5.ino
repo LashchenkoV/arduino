@@ -1,5 +1,9 @@
 #include "sav_button.h";
 #include "PressueSensor.h";
+#include "IState.h";
+#include "DefaultState.h";
+#include "ServiceState.h";
+#include "Program.h";
 #include <Wire.h>;
 #include <LiquidCrystal_I2C.h>;
 

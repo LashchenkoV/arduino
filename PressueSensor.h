@@ -1,5 +1,6 @@
 #ifndef PressueSensor_h
 #define PressueSensor_h
+#include "Arduino.h"
 
 class PressueSensor
 {
@@ -9,7 +10,7 @@ class PressueSensor
     int value;
 
   public:
-    PressueSensor(int pin);
+    PressueSensor(uint8_t pin);
     int getValue();
     void printValue();
 

@@ -2,7 +2,7 @@
 /**
  * pin - номер аналового пина датчика
  */ 
-PressueSensor::PressueSensor(int pin)
+PressueSensor::PressueSensor(uint8_t pin)
 {
   this->pin = pin;
   pinMode(pin, INPUT);
