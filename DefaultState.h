@@ -1,13 +1,16 @@
 #ifndef DefaultState_h
 #define DefaultState_h
 #include "Arduino.h"
-#include "IState.h"
+#include "PressueSensor.h";
+#include "Helper.h";
 
-class DefaultState : public IState
+class DefaultState
 {
-  public:
-    void update();
-    DefaultState();   
+public:
+  DefaultState();
+  void update();
+  static void drawValueSensors();
+
 };
 
 #endif

@@ -27,8 +27,7 @@ class SButton {
      uint16_t Period_auto_click;
   public :
      SButton(uint8_t pin,uint16_t tm1 = 50, uint16_t tm2 = 0, uint16_t tm3 = 0, uint16_t tm4 = 500);
-     void begin();
-     SBUTTON_CLICK Loop();
+     SBUTTON_CLICK update();
 };     
 
 
