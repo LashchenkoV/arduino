@@ -1,53 +1,47 @@
 #include "ServiceState.h";
-#include "Helper.h";
 
-void ServiceState::update()
-{
-    this->start();
-    if (Helper::buttons[0].update() == SB_CLICK)
-    {
-        if (this->iteratorMass + 1 == 5)
-        {
-            this->exit();
-        }
-        else
-        {
-            this->iteratorMass += 1;
-            Helper::lcd.clear();
-            Helper::lcd.setCursor(this->iteratorMass, 1);
-            Helper::lcd.print("-");
-        }
-    }
-    if (Helper::buttons[1].update() == SB_CLICK)
-    {
-        this->increaseMassOnIterator(this->iteratorMass);
-    }
-}
-
+/**
+ * Конструктор
+ */
 ServiceState::ServiceState()
 {
-    this->iteratorMass = 0;
+    //В меню ещё не входили
     this->entry = false;
-    for (int i = 0; i < 5; i++)
-    {
-        this->massAuto[i] = 0;
-    }
+    //Считываем массы осей
+    this->readMassAxis();
+    //Считываем соответствия 1ед. к кг для кажой оси
+    this->readProportionForAxis();
 }
 
-void ServiceState::paintMassAuto()
+/**
+ * Сработает при старте меню
+ */
+void ServiceState::start()
 {
-    for (int m = 0; m < 5; m++)
+    //Если уже входили в меню
+    if (this->entry == true)
     {
-        Helper::lcd.setCursor(m, 0);
-        Helper::lcd.print(massAuto[m]);
+        //Выводим нагрузку на текущую ось
+        this->outputMassAxis(this->iteratorAxis);
+        return;
     }
+    //Если в меню не входили
+    this->entry = true;
+    //По умолчанию будет выводится масса 1 оси
+    this->iteratorAxis = 0;
+    //Итератор для цифры
+    this->iteratorNumber = 0;
+    Helper::lcd.clear();
+    Helper::lcd.setCursor(4, 0);
+    Helper::lcd.print("Service");
+    delay(1000);
+    //Рисуем итератор нагрузки на ось
+    this->drawIterator(this->iteratorNumber);
 }
-void ServiceState::increaseMassOnIterator(byte i)
-{
-    if (this->massAuto[i] + 1 == 10)
-        this->massAuto[i] = -1;
-    this->massAuto[i] += 1;
-}
+
+/**
+ * Сработает при выходе из сервис меню
+ */
 void ServiceState::exit()
 {
     Helper::lcd.clear();
@@ -56,22 +50,171 @@ void ServiceState::exit()
     delay(1000);
     Helper::lcd.clear();
     this->entry = false;
+    //Переходим в состояние по умолчанию
     Helper::state = Helper::State::ST_DEFAULT;
-    this->iteratorMass = 0;
+    //Сохранили в энергонезависимую память нагрузки на ось
+    this->saveMassAxis();
+    //Расчитали соответствие
+    this->calculateProportion();
+    //Сохранили соответствие в энергонезависимую память
+    this->saveProportionForAxis();
 }
-void ServiceState::start()
+/**
+ * Основная ф-ция всего сервис меню
+ */
+void ServiceState::update()
 {
-    if (this->entry == true)
+    this->start();
+    switch (Helper::buttons[0].update())
     {
-        this->paintMassAuto();
+    //Если клик длинный, итератор назад
+    case SB_LONG_CLICK:
+        if (this->iteratorNumber - 1 >= 0)
+        {
+            this->iteratorNumber--;
+            //Рисуемитератор
+            this->drawIterator(this->iteratorNumber);
+        }
+        break;
+    //Если обычный клик то итератор вреред
+    case SB_CLICK:
+        if (this->iteratorNumber + 1 == 5)
+        {
+            this->nextAxis();
+        }
+        else
+        {
+            this->iteratorNumber++;
+            //Рисуемитератор
+            this->drawIterator(this->iteratorNumber);
+        }
+        break;
+    }
+
+    //Увеличивает массу при обычном клике в точке итератора
+    if (Helper::buttons[1].update() == SB_CLICK)
+    {
+        this->increaseNumberOnIterator(this->iteratorNumber);
+    }
+}
+
+void ServiceState::calculateProportion()
+{
+    float proportion;
+    String str;
+    for (int i = 0; i < Helper::getLenghtSensors(); i++)
+    {
+        for (int j = 0; j < 5; j++)
+        {
+            str += String(this->massAxis[i][j]);
+        }
+        this->arrProportion[i] = str.toInt() / Helper::sensors[i].getValue();
+    }
+}
+
+void ServiceState::nextAxis()
+{
+    if (Helper::getLenghtSensors()-1 == this->iteratorAxis)
+    {
+        this->exit();
         return;
     }
+    //Переключаем ось
+    this->iteratorAxis++;
+    //Обнуляем итератор
+    this->iteratorNumber=0;
+    //Рисуем итератрор
+    this->drawIterator(0);
+}
+/**
+ * Рисует итератор под i-той цифрой
+ */
+void ServiceState::drawIterator(byte i)
+{
     Helper::lcd.clear();
-    this->entry = true;
-    Helper::lcd.setCursor(4, 0);
-    Helper::lcd.print("Service");
-    delay(1000);
-    Helper::lcd.clear();
-    Helper::lcd.setCursor(this->iteratorMass, 1);
+    Helper::lcd.setCursor(i, 1);
     Helper::lcd.print("-");
+}
+
+/**
+ * Выводит массу axis оси на монитор
+ */
+void ServiceState::outputMassAxis(byte axis)
+{
+    for (int i = 0; i < 5; i++)
+    {
+        Helper::lcd.setCursor(i, 0);
+        Helper::lcd.print(this->massAxis[axis][i]);
+    }
+}
+
+/**
+ * Увеличивает цифру(одну) массы оси this->iteratorAxis на единицу
+ */
+void ServiceState::increaseNumberOnIterator(byte i)
+{
+    if (this->massAxis[this->iteratorAxis][i] + 1 == 10)
+        this->massAxis[this->iteratorAxis][i] = -1;
+    this->massAxis[this->iteratorAxis][i] += 1;
+}
+
+/**
+ * Сохраняет массу каждой оси в энергонезависимую память
+ */
+void ServiceState::saveMassAxis()
+{
+    int it = 0;
+    for (int i = 0; i < Helper::getLenghtSensors(); i++)
+    {
+        for (int j = 0; j < 5; j++)
+        {
+            EEPROM.write(it, massAxis[i][j]);
+            it++;
+        }
+        it++;
+    }
+}
+
+/**
+ * Считывает массу из энергонезависимой памяти
+ */
+void ServiceState::readMassAxis()
+{
+    int it = 0;
+    for (int i = 0; i < Helper::getLenghtSensors(); i++)
+    {
+        for (int j = 0; j < 5; j++)
+        {
+            this->massAxis[i][j] = EEPROM.read(it);
+            it++;
+        }
+        it++;
+    }
+}
+
+/**
+ * Сохраняет соответствие в энергонезависимую память
+ * в 
+ */
+void ServiceState::saveProportionForAxis()
+{
+    int addr = 50;
+    for (int i = 0; i < Helper::getLenghtSensors(); i++)
+    {
+        MathP::EEPROM_float_write(addr, this->arrProportion[i]);
+        addr += 5;
+    }
+}
+
+/**
+ * Считывает соответствие из энергонезависимой памяти
+ */
+void ServiceState::readProportionForAxis()
+{
+    int addr = 50;
+    for (int i = 0; i < Helper::getLenghtSensors(); i++)
+    {
+        this->arrProportion[i] = MathP::EEPROM_float_read(addr);
+        addr += 5;
+    }
 }
