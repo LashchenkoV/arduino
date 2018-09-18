@@ -2,31 +2,26 @@
 
 float MathP::EEPROM_float_read(int addr)
 {
-    byte raw[4];
-    for (byte i = 0; i < 4; i++)
-        raw[i] = EEPROM.read(addr + i);
-    float &num = (float &)raw;
-    return num;
+    float f = 0.00f;
+    EEPROM.get(addr, f);
+    return f;
 }
 void MathP::EEPROM_float_write(int addr, float num)
 {
-    byte raw[4];
-    (float &)raw = num;
-    for (byte i = 0; i < 4; i++)
-        EEPROM.write(addr + i, raw[i]);
+    EEPROM.put(addr, num);
 }
+
 unsigned int MathP::EEPROM_uint_read(int addr)
 {
-    byte raw[2];
-    for (byte i = 0; i < 2; i++)
-        raw[i] = EEPROM.read(addr + i);
-    unsigned int &num = (unsigned int &)raw;
-    return num;
+    int i = 0;
+    return EEPROM.get(addr, i);
 }
 void MathP::EEPROM_uint_write(int addr, unsigned int num)
 {
-    byte raw[2];
-    (unsigned int &)raw = num;
-    for (byte i = 0; i < 2; i++)
-        EEPROM.write(addr + i, raw[i]);
+    EEPROM.put(addr, num);
+}
+void MathP::EEPROM_clear()
+{
+    for (int i = 0; i < EEPROM.length(); i++)
+        EEPROM.write(i, 0);
 }

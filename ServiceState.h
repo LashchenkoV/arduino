@@ -27,8 +27,7 @@ private:
 
   //Считывает Массу осей
   void readMassAxis();
-  //Считывает пропорции
-  void readProportionForAxis();
+
   //Сохраняет Массу осей
   void saveMassAxis();
   //Сохраняет пропорции
@@ -48,6 +47,8 @@ private:
 public:
   ServiceState();
   void update();
+  //Считывает пропорции
+  static void readProportionForAxis(float a[]);
 };
 
 #endif

@@ -10,7 +10,7 @@ ServiceState::ServiceState()
     //Считываем массы осей
     this->readMassAxis();
     //Считываем соответствия 1ед. к кг для кажой оси
-    this->readProportionForAxis();
+    this->readProportionForAxis(this->arrProportion);
 }
 
 /**
@@ -100,7 +100,6 @@ void ServiceState::update()
 
 void ServiceState::calculateProportion()
 {
-    float proportion;
     String str;
     for (int i = 0; i < Helper::getLenghtSensors(); i++)
     {
@@ -108,13 +107,21 @@ void ServiceState::calculateProportion()
         {
             str += String(this->massAxis[i][j]);
         }
-        this->arrProportion[i] = str.toInt() / Helper::sensors[i].getValue();
+        this->arrProportion[i] = (float)str.toInt() / (float)Helper::sensors[i].getValue();
+#ifdef DEBUG_SERIAL
+        Serial.print(str.toInt());
+        Serial.print(" / ");
+        Serial.print(Helper::sensors[i].getValue());
+        Serial.print(" = ");
+        Serial.println(this->arrProportion[i]);
+#endif
+        str = "";
     }
 }
 
 void ServiceState::nextAxis()
 {
-    if (Helper::getLenghtSensors()-1 == this->iteratorAxis)
+    if (Helper::getLenghtSensors() - 1 == this->iteratorAxis)
     {
         this->exit();
         return;
@@ -122,7 +129,7 @@ void ServiceState::nextAxis()
     //Переключаем ось
     this->iteratorAxis++;
     //Обнуляем итератор
-    this->iteratorNumber=0;
+    this->iteratorNumber = 0;
     //Рисуем итератрор
     this->drawIterator(0);
 }
@@ -132,7 +139,7 @@ void ServiceState::nextAxis()
 void ServiceState::drawIterator(byte i)
 {
     Helper::lcd.clear();
-    Helper::lcd.setCursor(i, 1);
+    Helper::lcd.setCursor(i+3, 1);
     Helper::lcd.print("-");
 }
 
@@ -141,11 +148,16 @@ void ServiceState::drawIterator(byte i)
  */
 void ServiceState::outputMassAxis(byte axis)
 {
+    Helper::lcd.setCursor(0, 0);
+    Helper::lcd.print(axis+1);
+    Helper::lcd.print(".");
     for (int i = 0; i < 5; i++)
     {
-        Helper::lcd.setCursor(i, 0);
+        Helper::lcd.setCursor(i+3, 0);
         Helper::lcd.print(this->massAxis[axis][i]);
     }
+    Helper::lcd.setCursor(9, 0);
+    Helper::lcd.print("KG");
 }
 
 /**
@@ -201,20 +213,18 @@ void ServiceState::saveProportionForAxis()
     int addr = 50;
     for (int i = 0; i < Helper::getLenghtSensors(); i++)
     {
-        MathP::EEPROM_float_write(addr, this->arrProportion[i]);
-        addr += 5;
+        MathP::EEPROM_float_write(i * (sizeof(float)) + addr, this->arrProportion[i]);
     }
 }
 
 /**
  * Считывает соответствие из энергонезависимой памяти
  */
-void ServiceState::readProportionForAxis()
+void ServiceState::readProportionForAxis(float a[])
 {
     int addr = 50;
     for (int i = 0; i < Helper::getLenghtSensors(); i++)
     {
-        this->arrProportion[i] = MathP::EEPROM_float_read(addr);
-        addr += 5;
+        a[i] = MathP::EEPROM_float_read(i * (sizeof(float)) + addr);
     }
 }

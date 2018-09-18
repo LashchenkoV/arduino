@@ -27,6 +27,8 @@ ServiceState serviceSt = *new ServiceState();
 //состояние по умолчанию
 Helper::State Helper::state = Helper::State::ST_DEFAULT;
 
+//Для очистики памяти
+SButton clear(4, 50, 500, 2000, 500);
 void setup()
 {
     Serial.begin(9600);
@@ -36,6 +38,11 @@ void setup()
 }
 void loop()
 {
+    if (clear.update() == SB_CLICK)
+    {
+        MathP::EEPROM_clear();
+        Serial.println("OK");
+    }
     switch (Helper::state)
     {
     case Helper::State::ST_DEFAULT:
